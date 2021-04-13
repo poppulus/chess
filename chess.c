@@ -67,7 +67,8 @@ int main(int argc, const char *argv[])
             .selection = false,
             .enpassant = true,
             .state = G_MENU,
-            .inplen = 0
+            .inplen = 0,
+            .TURN = WHITE
         };
 
         while (!GAME.quit)
@@ -743,104 +744,114 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                     }
                 break;
                 case SDL_MOUSEBUTTONDOWN:
-                    if (e.button.button == SDL_BUTTON_RIGHT)
+                    if (GAME->TURN == GAME->PLAYER)
                     {
-                        GAME->selection = false;
-                        break;
-                    }
-
-                    if (!GAME->m_pressed)
-                    {
-                        if (e.button.button == SDL_BUTTON_LEFT) 
+                        if (e.button.button == SDL_BUTTON_RIGHT)
                         {
-                            if ((e.motion.x > GAME->b_quad.x 
-                            && e.motion.x - GAME->b_quad.x < GAME->b_quad.w) 
-                            && (e.motion.y > GAME->b_quad.y 
-                            && e.motion.y - GAME->b_quad.y < GAME->b_quad.h))
+                            GAME->selection = false;
+                            break;
+                        }
+
+                        if (!GAME->m_pressed)
+                        {
+                            if (e.button.button == SDL_BUTTON_LEFT) 
                             {
-                                if (!GAME->selection)
+                                if ((e.motion.x > GAME->b_quad.x 
+                                && e.motion.x - GAME->b_quad.x < GAME->b_quad.w) 
+                                && (e.motion.y > GAME->b_quad.y 
+                                && e.motion.y - GAME->b_quad.y < GAME->b_quad.h))
                                 {
-                                    for (int i = 0; i < 16; i++)
+                                    if (!GAME->selection)
                                     {
-                                        if (p1_set[i].x == GAME->cellx && p1_set[i].y == GAME->celly)
+                                        for (int i = 0; i < 16; i++)
                                         {
-                                            GAME->selection = true;
-
-                                            GAME->selected_piece = &p1_set[i];
-
-                                            GAME->s_quad.x = (GAME->cellx << 6) + GAME->b_quad.x;
-                                            GAME->s_quad.y = (GAME->celly << 6) + GAME->b_quad.y;
-
-                                            GAME->h_quad.x = (GAME->cellx << 6) + GAME->b_quad.x;
-                                            GAME->h_quad.y = (GAME->celly << 6) + GAME->b_quad.y;
-
-                                            break;
-                                        }
-                                    }
-                                }
-                                else 
-                                {
-                                    bool ok = true;
-                                    
-                                    for (int j = 0; j < 16; j++)
-                                    {
-                                        if (GAME->selected_piece->type == ROOK 
-                                        && (!p1_set[12].first && !GAME->selected_piece->first))
-                                        {
-                                            if (p1_set[12].x == GAME->cellx && p1_set[12].y == GAME->celly) continue;
-                                        }
-                                        
-                                        if (p1_set[j].x == GAME->cellx && p1_set[j].y == GAME->celly)
-                                        {
-                                            ok = false;
-                                            break;
-                                        }
-                                    }
-
-                                    if (ok & movePiece(*GAME->selected_piece, GAME->cellx, GAME->celly)) 
-                                    {
-                                        if (checkMove(GAME, p1_set, p2_set))
-                                        {
-                                            GAME->selection = false;
-
-                                            if (GAME->castling)
+                                            if (p1_set[i].x == GAME->cellx && p1_set[i].y == GAME->celly)
                                             {
-                                                // real bad !!!
-                                                setSocketData(GAME);
+                                                GAME->selection = true;
 
-                                                GAME->castling = false;
-                                                castling(GAME->selected_piece, &p1_set[12]);
+                                                GAME->selected_piece = &p1_set[i];
+
+                                                GAME->s_quad.x = (GAME->cellx << 6) + GAME->b_quad.x;
+                                                GAME->s_quad.y = (GAME->celly << 6) + GAME->b_quad.y;
+
+                                                GAME->h_quad.x = (GAME->cellx << 6) + GAME->b_quad.x;
+                                                GAME->h_quad.y = (GAME->celly << 6) + GAME->b_quad.y;
+
+                                                break;
                                             }
-                                            else
+                                        }
+                                    }
+                                    else 
+                                    {
+                                        bool ok = true;
+                                        
+                                        for (int j = 0; j < 16; j++)
+                                        {
+                                            if (GAME->selected_piece->type == ROOK 
+                                            && (!p1_set[12].first && !GAME->selected_piece->first))
                                             {
-                                                switch (GAME->selected_piece->type)
+                                                if (p1_set[12].x == GAME->cellx && p1_set[12].y == GAME->celly) continue;
+                                            }
+                                            
+                                            if (p1_set[j].x == GAME->cellx && p1_set[j].y == GAME->celly)
+                                            {
+                                                ok = false;
+                                                break;
+                                            }
+                                        }
+
+                                        if (ok & movePiece(*GAME->selected_piece, GAME->cellx, GAME->celly)) 
+                                        {
+                                            if (checkMove(GAME, p1_set, p2_set))
+                                            {
+                                                GAME->selection = false;
+
+                                                if (GAME->castling)
                                                 {
-                                                    case PAWN:
-                                                    case ROOK:
-                                                    case KING:
-                                                        GAME->selected_piece->first = true;
-                                                    break;
+                                                    // real bad !!!
+                                                    setSocketData(GAME);
+
+                                                    GAME->TURN = !GAME->PLAYER;
+
+                                                    GAME->castling = false;
+                                                    castling(GAME->selected_piece, &p1_set[12]);
                                                 }
-                                                checkOpponent(*GAME, p2_set);
+                                                else
+                                                {
+                                                    switch (GAME->selected_piece->type)
+                                                    {
+                                                        case PAWN:
+                                                        case ROOK:
+                                                        case KING:
+                                                            GAME->selected_piece->first = true;
+                                                        break;
+                                                    }
+                                                    checkOpponent(*GAME, p2_set);
 
-                                                if (GAME->celly == 0 && GAME->selected_piece->type == PAWN)
-                                                    GAME->promotion = true;
+                                                    if (GAME->celly == 0 && GAME->selected_piece->type == PAWN)
+                                                    {
+                                                        GAME->promotion = true;
 
-                                                /// test online functionality
-                                                setSocketData(GAME);
-                                                ///
+                                                    }
 
-                                                GAME->selected_piece->x = GAME->cellx;
-                                                GAME->selected_piece->y = GAME->celly;
-                                                
-                                                setRect(GAME->selected_piece);                       
+                                                    /// test online functionality
+                                                    setSocketData(GAME);
+                                                    ///
+
+                                                    GAME->TURN = !GAME->PLAYER;
+
+                                                    GAME->selected_piece->x = GAME->cellx;
+                                                    GAME->selected_piece->y = GAME->celly;
+                                                    
+                                                    setRect(GAME->selected_piece);                       
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
+                            GAME->m_pressed = true;
                         }
-                        GAME->m_pressed = true;
                     }
                 break;
                 case SDL_MOUSEBUTTONUP:

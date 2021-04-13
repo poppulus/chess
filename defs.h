@@ -74,8 +74,7 @@ typedef struct game
 	struct sockaddr_in servaddr, cli;
 
     int cellx, celly, 
-        mousex, mousey, 
-        PLAYER, inplen,
+        mousex, mousey, inplen,
         sockfd, connfd, addrlen,
         state;
 
@@ -85,5 +84,7 @@ typedef struct game
          selection,
          promotion,
          enpassant,
-         castling;
+         castling,
+         TURN, 
+         PLAYER;
 } game;

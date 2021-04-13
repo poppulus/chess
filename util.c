@@ -95,6 +95,8 @@ void joinInput(SDL_Event e, game *GAME)
                             setRect(&GAME->p2_set[12]);
                             //
 
+                            printf("p%d t%d\n", GAME->PLAYER, GAME->TURN);
+
                             GAME->state = G_PLAY;
                         } 
                     break;
@@ -314,7 +316,7 @@ bool moveQueen(g_piece piece, int x, int y)
 bool connectClient(game *GAME)
 {
     bool success = true;
-    int buf[4];
+    int buf[6];
 
     // socket create and varification
 	GAME->sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -427,6 +429,7 @@ int host_thread(void *ptr)
 
         bzero(buf, sizeof(buf));
         buf[0] = GAME->sockfd;
+        buf[1] = -1;
         
         if (send(GAME->connfd, buf, sizeof(buf), 0) > 0)
         {
@@ -447,6 +450,8 @@ int host_thread(void *ptr)
             setRect(&GAME->p2_set[11]);
             setRect(&GAME->p2_set[12]);
             //
+
+            printf("hosting: p%d t%d\n", GAME->PLAYER, GAME->TURN);
 
             wait_disconnect(GAME);
         }
@@ -485,6 +490,7 @@ void wait_disconnect(game *GAME)
 
     while (!quit)
     {
+        printf("p%d t%d\n", GAME->PLAYER, GAME->TURN);
         nbytes = recv(GAME->connfd, buf, sizeof(buf), 0);
 
         if (nbytes <= 0)
@@ -496,20 +502,25 @@ void wait_disconnect(game *GAME)
         }
         else
         {
-            for (int i = 15; i > -1; i--)
+            if (buf[S_PIECEID] != -1)
             {
-                if (GAME->p2_set[i].id == buf[S_PIECEID])
+                for (int i = 15; i > -1; i--)
                 {
-                    //if (GAME->p2_set[i].type == ROOK 
-                    //&& checkOpCastle(GAME->p2_set, &GAME->p2_set[i], buf)) break;
-                    //else
-                    //{
-                        GAME->p2_set[i].x += buf[S_DELTAX];
-                        GAME->p2_set[i].y += buf[S_DELTAY];
+                    if (GAME->p2_set[i].id == buf[S_PIECEID])
+                    {
+                        //if (GAME->p2_set[i].type == ROOK 
+                        //&& checkOpCastle(GAME->p2_set, &GAME->p2_set[i], buf)) break;
+                        //else
+                        //{
+                            GAME->p2_set[i].x += buf[S_DELTAX];
+                            GAME->p2_set[i].y += buf[S_DELTAY];
 
-                        checkSelf(GAME->p1_set, GAME->p2_set[i].x, GAME->p2_set[i].y);
-                        setRect(&GAME->p2_set[i]);
-                    //}
+                            checkSelf(GAME->p1_set, GAME->p2_set[i].x, GAME->p2_set[i].y);
+                            setRect(&GAME->p2_set[i]);
+
+                            GAME->TURN = GAME->PLAYER;
+                        //}
+                    }
                 }
             }
         }
