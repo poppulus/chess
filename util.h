@@ -26,14 +26,14 @@ bool checkMove(game *GAME, g_piece p1[], g_piece p2[]);
 void checkOpponent(game GAME, g_piece p2[]);
 void checkSelf(g_piece p1[], int x, int y);
 bool checkNextMove(g_piece p1[], g_piece p2[], int x, int y);
-bool checkOpCastle(g_piece set[], g_piece *piece, int buf[6]);
+bool checkOpCastle(game GAME, g_piece set[], g_piece *piece, int buf[6]);
 
 void epOpponent(g_piece *piece, g_piece *p2);
 
 bool movePiece(g_piece piece, int x, int y);
 void promotePiece();
 void castling(g_piece *s_piece, g_piece *king);
-bool checkCastle(g_piece p1[], g_piece p2[], int x, int x2);
+bool checkCastle(bool player, g_piece p1[], g_piece p2[], int x, int x2);
 
 void hostInput(SDL_Event e, game *GAME);
 void joinInput(SDL_Event e, game *GAME);

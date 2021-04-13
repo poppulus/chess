@@ -546,30 +546,26 @@ bool checkMove(game *GAME, g_piece p1[], g_piece p2[])
             }
         break;
         case ROOK:
-            if (GAME->cellx == p1[12].x 
-            && GAME->celly == p1[12].y)
+            if (GAME->cellx == p1[GAME->PLAYER ? 12 : 11].x 
+            && GAME->celly == p1[GAME->PLAYER ? 12 : 11].y)
             {
-                if (!GAME->selected_piece->first && !p1[12].first)
+                if (!GAME->selected_piece->first && !p1[GAME->PLAYER ? 12 : 11].first)
                 {
                     if (!checkHorizontal(GAME->selected_piece, p1, GAME->cellx, GAME->celly, dx) 
                     || !checkHorizontal(GAME->selected_piece, p1, GAME->cellx, GAME->celly, dx)) success = false;
                     else
                     {
-                        if (GAME->selected_piece->x < p1[12].x) 
-                            GAME->castling = checkCastle(p1, p2, p1[12].x - 1, p1[12].x - 2);
-                        else if (GAME->selected_piece->x > p1[12].x) 
-                            GAME->castling = checkCastle(p1, p2, p1[12].x + 1, p1[12].x + 2);
+                        if (GAME->selected_piece->x < p1[GAME->PLAYER ? 12 : 11].x) 
+                            GAME->castling = checkCastle(GAME->PLAYER, p1, p2, p1[GAME->PLAYER ? 12 : 11].x - 1, p1[GAME->PLAYER ? 12 : 11].x - 2);
+                        else if (GAME->selected_piece->x > p1[GAME->PLAYER ? 12 : 11].x) 
+                            GAME->castling = checkCastle(GAME->PLAYER, p1, p2, p1[GAME->PLAYER ? 12 : 11].x + 1, p1[GAME->PLAYER ? 12 : 11].x + 2);
 
-                        if (GAME->castling)
-                        {
-                            GAME->castling = true;
-                            break;
-                        }
-                        else
+                        if (!GAME->castling)
                         {
                             success = false;
                             break;
-                        }
+                        } 
+                        else break;
                     }
                 }
             }
@@ -788,9 +784,10 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                         for (int j = 0; j < 16; j++)
                                         {
                                             if (GAME->selected_piece->type == ROOK 
-                                            && (!p1_set[12].first && !GAME->selected_piece->first))
+                                            && (!p1_set[GAME->PLAYER ? 12 : 11].first && !GAME->selected_piece->first))
                                             {
-                                                if (p1_set[12].x == GAME->cellx && p1_set[12].y == GAME->celly) continue;
+                                                if (p1_set[GAME->PLAYER ? 12 : 11].x == GAME->cellx 
+                                                && p1_set[GAME->PLAYER ? 12 : 11].y == GAME->celly) continue;
                                             }
                                             
                                             if (p1_set[j].x == GAME->cellx && p1_set[j].y == GAME->celly)
@@ -814,7 +811,7 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                                     GAME->TURN = !GAME->PLAYER;
 
                                                     GAME->castling = false;
-                                                    castling(GAME->selected_piece, &p1_set[12]);
+                                                    castling(GAME->selected_piece, &p1_set[GAME->PLAYER ? 12 : 11]);
                                                 }
                                                 else
                                                 {
@@ -960,11 +957,11 @@ void castling(g_piece *s_piece, g_piece *king)
     king->first = true;
 }
 
-bool checkCastle(g_piece p1[], g_piece p2[], int x, int x2)
+bool checkCastle(bool player, g_piece p1[], g_piece p2[], int x, int x2)
 {
-    if (checkNextMove(p1, p2, p1[12].x, p1[12].y) 
-    && checkNextMove(p1, p2, x, p1[12].y)
-    && checkNextMove(p1, p2, x2, p1[12].y)) return true;
+    if (checkNextMove(p1, p2, p1[player ? 12 : 11].x, p1[player == WHITE ? 12 : 11].y) 
+    && checkNextMove(p1, p2, x, p1[player ? 12 : 11].y)
+    && checkNextMove(p1, p2, x2, p1[player ? 12 : 11].y)) return true;
     return false;
 }
 

@@ -464,16 +464,20 @@ int host_thread(void *ptr)
     return 0;
 }
 
-bool checkOpCastle(g_piece set[], g_piece *piece, int buf[6])
+bool checkOpCastle(game GAME, g_piece set[], g_piece *piece, int buf[6])
 {
     bool success = false;
 
     for (int i = 15; i > -1; i--)
     {
-        if (set[i].type == KING && set[i].x == buf[S_PIECEX])
+        if (set[i].type == KING)
         {
-            castling(piece, &set[i]);
-            success = true;
+            if ((GAME.PLAYER && set[i].x == buf[S_PIECEX]) 
+            || (!GAME.PLAYER && set[i].x == buf[S_PIECEX - 1]))
+            {
+                castling(piece, &set[i]);
+                success = true;
+            }
         }
     }
 
@@ -490,7 +494,6 @@ void wait_disconnect(game *GAME)
 
     while (!quit)
     {
-        printf("p%d t%d\n", GAME->PLAYER, GAME->TURN);
         nbytes = recv(GAME->connfd, buf, sizeof(buf), 0);
 
         if (nbytes <= 0)
@@ -508,10 +511,14 @@ void wait_disconnect(game *GAME)
                 {
                     if (GAME->p2_set[i].id == buf[S_PIECEID])
                     {
-                        //if (GAME->p2_set[i].type == ROOK 
-                        //&& checkOpCastle(GAME->p2_set, &GAME->p2_set[i], buf)) break;
-                        //else
-                        //{
+                        if (GAME->p2_set[i].type == ROOK
+                        && checkOpCastle(*GAME, GAME->p2_set, &GAME->p2_set[i], buf)) 
+                        {
+                            GAME->TURN = GAME->PLAYER;
+                            break;
+                        }
+                        else
+                        {
                             GAME->p2_set[i].x += buf[S_DELTAX];
                             GAME->p2_set[i].y += buf[S_DELTAY];
 
@@ -519,7 +526,7 @@ void wait_disconnect(game *GAME)
                             setRect(&GAME->p2_set[i]);
 
                             GAME->TURN = GAME->PLAYER;
-                        //}
+                        }
                     }
                 }
             }
