@@ -3,7 +3,7 @@
 bool initSdl();
 void initButtons(SDL_Rect set[]);
 void initTypes(g_piece set[], bool player);
-void initPositions(g_piece p1[], g_piece p2[]);
+void initPositions(g_piece p1[], g_piece p2[], bool color);
 void initRects(g_piece set[]);
 void initClips(SDL_Rect clips[]);
 void initColor(g_piece set[], bool player);

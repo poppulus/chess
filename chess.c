@@ -257,8 +257,7 @@ void initTypes(g_piece set[], bool color)
     for (int i = 0; i < 16; i++)
     {
         set[i].dead = false;
-        set[i].color = color;
-        switch (i)
+        switch (set[i].id)
         {
             case 0 ... 7:
                 set[i].type = PAWN;
@@ -288,7 +287,7 @@ void initTypes(g_piece set[], bool color)
     }
 }
 
-void initPositions(g_piece p1[], g_piece p2[])
+void initPositions(g_piece p1[], g_piece p2[], bool white)
 {
     for (int i = 0; i < 16; i++)
     {
@@ -298,32 +297,24 @@ void initPositions(g_piece p1[], g_piece p2[])
         else p1[i].y = 7;
     }
 
-    for (int j = 15; j > -1; j--)
+    for (int j = 0; j < 16; j++)
     {
-        //  is there a better/shorter solution?
-        switch (j)
-        {
-            case 8: p2[j].x = 7; break;
-            case 9: p2[j].x = 6; break;
-            case 10: p2[j].x = 5; break;
-            case 11: p2[j].x = 4; break;
-            case 12: p2[j].x = 3; break;
-            case 13: p2[j].x = 2; break;
-            case 14: p2[j].x = 1; break;
-            case 15: p2[j].x = 0; break;
+        p2[j].x = j % 8;
 
-            case 0: p2[j].x = 7; break;
-            case 1: p2[j].x = 6; break;
-            case 2: p2[j].x = 5; break;
-            case 3: p2[j].x = 4; break;
-            case 4: p2[j].x = 3; break;
-            case 5: p2[j].x = 2; break;
-            case 6: p2[j].x = 1; break;
-            case 7: p2[j].x = 0; break;
-        }
-
-        if (j < 8) p2[j].y = 1;
+        if (j > 7) p2[j].y = 1;
         else p2[j].y = 0;
+    }
+    
+    //temp fix for king positions
+    if (!white)
+    {
+        p1[11].x = 4;
+        p1[12].x = 3;
+    }
+    else
+    {
+        p2[3].x = 4;
+        p2[4].x = 3;
     }
 }
 

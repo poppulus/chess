@@ -2,30 +2,25 @@
 
 void drawPieces(Texture texture, SDL_Rect clips[], game GAME, g_piece p1[], g_piece p2[])
 {
-    for (int j = 0; j < 32; j++)
+    for (int i = 0; i < 16; i++)
     {
-        if (j < 16)
-        {
-            if (p2[j].dead) continue;
-            if (GAME.selection && &p2[j] == GAME.selected_piece)
-                continue;
+        if (p1[i].dead) continue;
+        if (GAME.selection && &p1[i] == GAME.selected_piece)
+            continue;
 
-            if (GAME.PLAYER == BLACK)
-                renderTexture(&texture, p2[j].rect.x + 16, p2[j].rect.y + 16, &clips[6 + p2[j].type], false);
-            else 
-                renderTexture(&texture, p2[j].rect.x + 16, p2[j].rect.y + 16, &clips[p2[j - 16].type], false);
-        }
+        if (GAME.PLAYER == WHITE)
+            renderTexture(&texture, p1[i].rect.x + 16, p1[i].rect.y + 16, &clips[6 + p1[i].type], false);
         else 
-        {
-            if (p1[j - 16].dead) continue;
-            if (GAME.selection && &p1[j - 16] == GAME.selected_piece)
-                continue;
+            renderTexture(&texture, p1[i].rect.x + 16, p1[i].rect.y + 16, &clips[p1[i].type], false);
+    }
+    for (int j = 0; j < 16; j++)
+    {
+        if (p2[j].dead) continue;
 
-            if (GAME.PLAYER == BLACK)
-                renderTexture(&texture, p1[j - 16].rect.x + 16, p1[j - 16].rect.y + 16, &clips[p1[j - 16].type], false);
-            else
-                renderTexture(&texture, p1[j - 16].rect.x + 16, p1[j - 16].rect.y + 16, &clips[6 + p1[j].type], false);
-        }
+        if (GAME.PLAYER == WHITE)
+            renderTexture(&texture, p2[j].rect.x + 16, p2[j].rect.y + 16, &clips[p2[j].type], false);
+        else
+            renderTexture(&texture, p2[j].rect.x + 16, p2[j].rect.y + 16, &clips[6 + p2[j].type], false);
     }
 }
 
@@ -79,25 +74,10 @@ void joinInput(SDL_Event e, game *GAME)
                     case SDLK_RETURN: 
                         if (connectClient(GAME)) 
                         {
-                            thrd_create(&GAME->thread, connect_thread, GAME);
                             GAME->PLAYER = BLACK;
-                            setupGame(GAME->p1_set, GAME->p2_set, BLACK, WHITE);
-
-                            // test yo
-                            GAME->p1_set[12].x = 3;
-                            GAME->p2_set[12].x = 3;
-                            GAME->p1_set[11].x = 4;
-                            GAME->p2_set[11].x = 4;
-
-                            setRect(&GAME->p1_set[11]);
-                            setRect(&GAME->p1_set[12]);
-                            setRect(&GAME->p2_set[11]);
-                            setRect(&GAME->p2_set[12]);
-                            //
-
-                            printf("p%d t%d\n", GAME->PLAYER, GAME->TURN);
-
                             GAME->state = G_PLAY;
+                            setupGame(GAME->p1_set, GAME->p2_set, BLACK, WHITE);
+                            thrd_create(&GAME->thread, connect_thread, GAME);
                         } 
                     break;
                     case SDLK_ESCAPE: GAME->state = G_MENU; break;
@@ -125,6 +105,13 @@ void menuInput(SDL_Event e, game *GAME, SDL_Rect buttons[])
             case SDL_QUIT: GAME->quit = true; break;
             case SDL_KEYDOWN: 
                 if (e.key.keysym.sym == SDLK_ESCAPE) GAME->quit = true; 
+                else if (e.key.keysym.sym == SDLK_RETURN) 
+                {
+                    // testing purposes
+                    GAME->PLAYER = WHITE;
+                    GAME->state = G_PLAY;
+                    setupGame(GAME->p1_set, GAME->p2_set, WHITE, BLACK);
+                }
             break;
             case SDL_MOUSEMOTION:
             break;
@@ -212,7 +199,7 @@ void initIds(g_piece p1[], g_piece p2[])
         p1[i].id = i;
 
     for (int j = 15; j > -1; j--) 
-        p2[j].id = j;
+        p2[j].id = 15 - j;
 }
 
 void setupGame(g_piece p1[], g_piece p2[], bool p1color, bool p2color)
@@ -222,7 +209,7 @@ void setupGame(g_piece p1[], g_piece p2[], bool p1color, bool p2color)
     initTypes(p1, p1color);
     initTypes(p2, p2color);
 
-    initPositions(p1, p2);
+    initPositions(p1, p2, p1color);
 
     initRects(p1);
     initRects(p2);
@@ -436,23 +423,7 @@ int host_thread(void *ptr)
             GAME->hosting = true;
             GAME->state = G_PLAY;
             GAME->PLAYER = WHITE;
-
             setupGame(GAME->p1_set, GAME->p2_set, WHITE, BLACK);
-
-            // test yo
-            //GAME->p1_set[12].x = 4;
-            GAME->p2_set[12].x = 4;
-            //GAME->p1_set[11].x = 3;
-            GAME->p2_set[11].x = 3;
-
-            //setRect(&GAME->p1_set[11]);
-            //setRect(&GAME->p1_set[12]);
-            setRect(&GAME->p2_set[11]);
-            setRect(&GAME->p2_set[12]);
-            //
-
-            printf("hosting: p%d t%d\n", GAME->PLAYER, GAME->TURN);
-
             wait_disconnect(GAME);
         }
     }
@@ -507,10 +478,11 @@ void wait_disconnect(game *GAME)
         {
             if (buf[S_PIECEID] != -1)
             {
-                for (int i = 15; i > -1; i--)
+                for (int i = 0; i < 16; i++)
                 {
                     if (GAME->p2_set[i].id == buf[S_PIECEID])
                     {
+                        /*
                         if (GAME->p2_set[i].type == ROOK
                         && checkOpCastle(*GAME, GAME->p2_set, &GAME->p2_set[i], buf)) 
                         {
@@ -518,7 +490,8 @@ void wait_disconnect(game *GAME)
                             break;
                         }
                         else
-                        {
+                        */
+                        //{
                             GAME->p2_set[i].x += buf[S_DELTAX];
                             GAME->p2_set[i].y += buf[S_DELTAY];
 
@@ -526,7 +499,7 @@ void wait_disconnect(game *GAME)
                             setRect(&GAME->p2_set[i]);
 
                             GAME->TURN = GAME->PLAYER;
-                        }
+                        //}
                     }
                 }
             }
@@ -534,5 +507,5 @@ void wait_disconnect(game *GAME)
         bzero(buf, sizeof(buf));
     }
 
-    printf("thread: client disconnected\n");
+    printf("thread: client disconnected\n thread terminated\n");
 }
