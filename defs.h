@@ -45,7 +45,8 @@ enum s_data
     S_DELTAX,
     S_DELTAY,
     S_PIECEX,
-    S_PIECEY
+    S_PIECEY,
+    S_PROMOTE
 };
 
 typedef struct texture

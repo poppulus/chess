@@ -3,6 +3,9 @@
 const int FPS = 60;
 const int TICKS = 1000 / FPS;
 
+const int W_WIDTH = 800;
+const int W_HEIGHT = 600;
+
 SDL_Window *window;
 SDL_Renderer *renderer;
 Texture texture;
@@ -222,7 +225,7 @@ bool initSdl()
             "Chess", 
             SDL_WINDOWPOS_UNDEFINED, 
             SDL_WINDOWPOS_UNDEFINED, 
-            800, 600, 
+            W_WIDTH, W_HEIGHT, 
             SDL_WINDOW_SHOWN);
         if( window == NULL )
         {
@@ -504,7 +507,6 @@ bool checkMove(game *GAME, g_piece p1[], g_piece p2[])
                         && (GAME->selected_piece->x + 1 == p2[i].x 
                         || GAME->selected_piece->x - 1 == p2[i].x))
                         {
-                            printf("enpassant?\n");
                             found = true;
                             epOpponent(GAME->selected_piece, &p2[i]);
                             GAME->enpassant = false;
@@ -537,19 +539,19 @@ bool checkMove(game *GAME, g_piece p1[], g_piece p2[])
             }
         break;
         case ROOK:
-            if (GAME->cellx == p1[GAME->PLAYER ? 12 : 11].x 
-            && GAME->celly == p1[GAME->PLAYER ? 12 : 11].y)
+            if (GAME->cellx == p1[12].x 
+            && GAME->celly == p1[12].y)
             {
-                if (!GAME->selected_piece->first && !p1[GAME->PLAYER ? 12 : 11].first)
+                if (!GAME->selected_piece->first && !p1[12].first)
                 {
                     if (!checkHorizontal(GAME->selected_piece, p1, GAME->cellx, GAME->celly, dx) 
                     || !checkHorizontal(GAME->selected_piece, p1, GAME->cellx, GAME->celly, dx)) success = false;
                     else
                     {
-                        if (GAME->selected_piece->x < p1[GAME->PLAYER ? 12 : 11].x) 
-                            GAME->castling = checkCastle(GAME->PLAYER, p1, p2, p1[GAME->PLAYER ? 12 : 11].x - 1, p1[GAME->PLAYER ? 12 : 11].x - 2);
-                        else if (GAME->selected_piece->x > p1[GAME->PLAYER ? 12 : 11].x) 
-                            GAME->castling = checkCastle(GAME->PLAYER, p1, p2, p1[GAME->PLAYER ? 12 : 11].x + 1, p1[GAME->PLAYER ? 12 : 11].x + 2);
+                        if (GAME->selected_piece->x < p1[12].x) 
+                            GAME->castling = checkCastle(p1[12], p1, p2, p1[12].x - 1, p1[12].x - 2);
+                        else if (GAME->selected_piece->x > p1[12].x) 
+                            GAME->castling = checkCastle(p1[12], p1, p2, p1[12].x + 1, p1[12].x + 2);
 
                         if (!GAME->castling)
                         {
@@ -727,8 +729,10 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                         {
                             GAME->h_quad.x = (GAME->cellx << 6) + GAME->b_quad.x;
                             GAME->h_quad.y = (GAME->celly << 6) + GAME->b_quad.y;
+                            SDL_ShowCursor(0);
                         }
                     }
+                    else SDL_ShowCursor(1);
                 break;
                 case SDL_MOUSEBUTTONDOWN:
                     if (GAME->TURN == GAME->PLAYER)
@@ -736,6 +740,7 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                         if (e.button.button == SDL_BUTTON_RIGHT)
                         {
                             GAME->selection = false;
+                            SDL_ShowCursor(1);
                             break;
                         }
 
@@ -764,6 +769,8 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                                 GAME->h_quad.x = (GAME->cellx << 6) + GAME->b_quad.x;
                                                 GAME->h_quad.y = (GAME->celly << 6) + GAME->b_quad.y;
 
+                                                SDL_ShowCursor(0);
+
                                                 break;
                                             }
                                         }
@@ -775,10 +782,10 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                         for (int j = 0; j < 16; j++)
                                         {
                                             if (GAME->selected_piece->type == ROOK 
-                                            && (!p1_set[GAME->PLAYER ? 12 : 11].first && !GAME->selected_piece->first))
+                                            && (!p1_set[12].first && !GAME->selected_piece->first))
                                             {
-                                                if (p1_set[GAME->PLAYER ? 12 : 11].x == GAME->cellx 
-                                                && p1_set[GAME->PLAYER ? 12 : 11].y == GAME->celly) continue;
+                                                if (p1_set[12].x == GAME->cellx 
+                                                && p1_set[12].y == GAME->celly) continue;
                                             }
                                             
                                             if (p1_set[j].x == GAME->cellx && p1_set[j].y == GAME->celly)
@@ -796,13 +803,12 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
 
                                                 if (GAME->castling)
                                                 {
-                                                    // real bad !!!
-                                                    setSocketData(GAME);
+                                                    setSocketData(GAME, 0);
 
                                                     GAME->TURN = !GAME->PLAYER;
 
                                                     GAME->castling = false;
-                                                    castling(GAME->selected_piece, &p1_set[GAME->PLAYER ? 12 : 11]);
+                                                    castling(GAME->selected_piece, &p1_set[12]);
                                                 }
                                                 else
                                                 {
@@ -819,11 +825,11 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                                     if (GAME->celly == 0 && GAME->selected_piece->type == PAWN)
                                                     {
                                                         GAME->promotion = true;
-
+                                                        break;
                                                     }
 
                                                     /// test online functionality
-                                                    setSocketData(GAME);
+                                                    setSocketData(GAME, 0);
                                                     ///
 
                                                     GAME->TURN = !GAME->PLAYER;
@@ -834,6 +840,8 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                                     setRect(GAME->selected_piece);                       
                                                 }
                                             }
+                                            GAME->enpassant = false;
+                                            SDL_ShowCursor(1);
                                         }
                                     }
                                 }
@@ -903,26 +911,34 @@ void promotePiece(game *GAME, SDL_Event e)
         {
             case 'q':
                 GAME->selected_piece->type = QUEEN;
-                GAME->promotion = false;
-                GAME->m_pressed = false;
-            break;
             case 'r':
                 GAME->selected_piece->type = ROOK;
-                GAME->promotion = false;
-                GAME->m_pressed = false;
-            break;
             case 'b':
                 GAME->selected_piece->type = BISHOP;
-                GAME->promotion = false;
-                GAME->m_pressed = false;
-            break;
             case 'k':
                 GAME->selected_piece->type = KNIGHT;
+
                 GAME->promotion = false;
                 GAME->m_pressed = false;
+                GAME->selection = false;
+
+                /// test online functionality
+                setSocketData(GAME, GAME->selected_piece->type);
+                ///
+
+                GAME->TURN = !GAME->PLAYER;
+
+                GAME->selected_piece->x = GAME->cellx;
+                GAME->selected_piece->y = GAME->celly;
+                
+                setRect(GAME->selected_piece); 
+                SDL_ShowCursor(1);
             break;
             case SDLK_ESCAPE:
-                GAME->quit = true;
+                GAME->state = G_MENU;
+                shutdown(GAME->sockfd, SHUT_RDWR);
+                close(GAME->sockfd);
+                SDL_ShowCursor(1);
             break;
         }
     }
@@ -948,11 +964,11 @@ void castling(g_piece *s_piece, g_piece *king)
     king->first = true;
 }
 
-bool checkCastle(bool player, g_piece p1[], g_piece p2[], int x, int x2)
+bool checkCastle(g_piece piece, g_piece p1[], g_piece p2[], int x, int x2)
 {
-    if (checkNextMove(p1, p2, p1[player ? 12 : 11].x, p1[player == WHITE ? 12 : 11].y) 
-    && checkNextMove(p1, p2, x, p1[player ? 12 : 11].y)
-    && checkNextMove(p1, p2, x2, p1[player ? 12 : 11].y)) return true;
+    if (checkNextMove(p1, p2, piece.x, piece.y) 
+    && checkNextMove(p1, p2, x, piece.y)
+    && checkNextMove(p1, p2, x2, piece.y)) return true;
     return false;
 }
 

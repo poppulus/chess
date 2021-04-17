@@ -33,7 +33,7 @@ void epOpponent(g_piece *piece, g_piece *p2);
 bool movePiece(g_piece piece, int x, int y);
 void promotePiece();
 void castling(g_piece *s_piece, g_piece *king);
-bool checkCastle(bool player, g_piece p1[], g_piece p2[], int x, int x2);
+bool checkCastle(g_piece piece, g_piece p1[], g_piece p2[], int x, int x2);
 
 void hostInput(SDL_Event e, game *GAME);
 void joinInput(SDL_Event e, game *GAME);
@@ -52,7 +52,7 @@ bool moveQueen(g_piece piece, int x, int y);
 
 bool hostServer(game *GAME);
 bool connectClient(game *GAME);
-void setSocketData(game *GAME);
+void setSocketData(game *GAME, int promote);
 
 int connect_thread(void *ptr);
 int host_thread(void *ptr);

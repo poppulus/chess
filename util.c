@@ -32,7 +32,10 @@ void drawSelectHover(SDL_Renderer *renderer, Texture texture, SDL_Rect clips[], 
     SDL_SetRenderDrawColor(renderer, 0xff, 0xff, 0x40, 0xff);
     SDL_RenderFillRect(renderer, &GAME.s_quad);
 
-    renderTexture(&texture, GAME.mousex, GAME.mousey, &clips[GAME.selected_piece->type], false);
+    if (!GAME.PLAYER)
+        renderTexture(&texture, GAME.mousex - 16, GAME.mousey - 16, &clips[GAME.selected_piece->type], false);
+    else 
+        renderTexture(&texture, GAME.mousex - 16, GAME.mousey - 16, &clips[6 + GAME.selected_piece->type], false);
 }
 
 void hostInput(SDL_Event e, game *GAME)
@@ -336,9 +339,9 @@ bool connectClient(game *GAME)
     return success;
 }
 
-void setSocketData(game *GAME)
+void setSocketData(game *GAME, int promote)
 {
-    int buf[6];
+    int buf[7];
 
     buf[S_FILED] = GAME->sockfd;
     buf[S_PIECEID] = GAME->selected_piece->id;
@@ -346,6 +349,7 @@ void setSocketData(game *GAME)
     buf[S_DELTAY] = GAME->selected_piece->y - GAME->celly;
     buf[S_PIECEX] = GAME->cellx;
     buf[S_PIECEY] = GAME->celly;
+    buf[S_PROMOTE] = promote;
 
     send(GAME->connfd, buf, sizeof(buf), 0); 
 }
@@ -443,8 +447,8 @@ bool checkOpCastle(game GAME, g_piece set[], g_piece *piece, int buf[6])
     {
         if (set[i].type == KING)
         {
-            if ((GAME.PLAYER && set[i].x == buf[S_PIECEX]) 
-            || (!GAME.PLAYER && set[i].x == buf[S_PIECEX - 1]))
+            if ((GAME.PLAYER && set[i].x == (buf[S_PIECEX] + 1)) 
+            || (!GAME.PLAYER && set[i].x == (buf[S_PIECEX] - 1)))
             {
                 castling(piece, &set[i]);
                 success = true;
@@ -482,7 +486,6 @@ void wait_disconnect(game *GAME)
                 {
                     if (GAME->p2_set[i].id == buf[S_PIECEID])
                     {
-                        /*
                         if (GAME->p2_set[i].type == ROOK
                         && checkOpCastle(*GAME, GAME->p2_set, &GAME->p2_set[i], buf)) 
                         {
@@ -490,16 +493,31 @@ void wait_disconnect(game *GAME)
                             break;
                         }
                         else
-                        */
-                        //{
+                        {
+                            if (buf[S_PROMOTE]) GAME->p2_set[i].type = buf[S_PROMOTE];
+
                             GAME->p2_set[i].x += buf[S_DELTAX];
                             GAME->p2_set[i].y += buf[S_DELTAY];
+
+                            if (GAME->p2_set[i].y == 3 
+                            && GAME->p2_set[i].type == PAWN 
+                            && !GAME->p2_set[i].first) 
+                                GAME->enpassant = true;
+
+                            switch (GAME->p2_set[i].type)
+                            {
+                                case PAWN:
+                                case KING:
+                                case ROOK:
+                                    GAME->p2_set[i].first = true;
+                                break;
+                            }
 
                             checkSelf(GAME->p1_set, GAME->p2_set[i].x, GAME->p2_set[i].y);
                             setRect(&GAME->p2_set[i]);
 
                             GAME->TURN = GAME->PLAYER;
-                        //}
+                        }
                     }
                 }
             }
