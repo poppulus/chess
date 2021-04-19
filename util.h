@@ -40,6 +40,7 @@ void joinInput(SDL_Event e, game *GAME);
 void menuInput(SDL_Event e, game *GAME, SDL_Rect buttons[]);
 void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[]);
 void waitInput(SDL_Event e, game *GAME);
+void checkmateInput(SDL_Event e, game *GAME);
 
 void setRect(g_piece *piece);
 

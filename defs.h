@@ -77,12 +77,13 @@ typedef struct game
     int cellx, celly, 
         mousex, mousey, inplen,
         sockfd, connfd, addrlen,
-        state;
+        state, WINNER;
 
     bool quit, 
          hosting, 
          m_pressed, 
          selection,
+         CHECKMATE,
          promotion,
          enpassant,
          castling,

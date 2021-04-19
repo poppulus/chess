@@ -71,7 +71,9 @@ int main(int argc, const char *argv[])
             .enpassant = true,
             .state = G_MENU,
             .inplen = 0,
-            .TURN = WHITE
+            .TURN = WHITE,
+            .CHECKMATE = false,
+            .WINNER = 0
         };
 
         while (!GAME.quit)
@@ -141,7 +143,8 @@ int main(int argc, const char *argv[])
                 break;
                 case G_PLAY:
                     //read input
-                    playInput(e, &GAME, player1_set, player2_set);
+                    if (!GAME.CHECKMATE) playInput(e, &GAME, player1_set, player2_set);
+                    else checkmateInput(e, &GAME);
 
                     // board
                     for (int i = 0; i < 64; i++)
@@ -174,10 +177,25 @@ int main(int argc, const char *argv[])
 
                     // draw hover quad
                     // draw selector
-                    if (GAME.selection) drawSelectHover(renderer, texture, clips, GAME);
+                    if (!GAME.CHECKMATE)
+                    {
+                        if (GAME.selection) drawSelectHover(renderer, texture, clips, GAME);
+                        // draw pieces
+                        drawPieces(texture, clips, GAME, player1_set, player2_set);
+                    }
+                    else
+                    {
+                        FC_Draw(
+                            fontTexture, 
+                            renderer, 
+                            buttons[B_HOST].x + (buttons[B_HOST].w >> 2), 
+                            buttons[B_HOST].y + (buttons[B_HOST].h >> 2), 
+                            "Checkmate!\n%d player won the game.", GAME.WINNER);
+
+                        // draw pieces
+                        drawPieces(texture, clips, GAME, player1_set, player2_set);
+                    }
                     
-                    // draw pieces
-                    drawPieces(texture, clips, GAME, player1_set, player2_set);
                 break;
             }
 
@@ -631,8 +649,6 @@ void checkSelf(g_piece p1[], int x, int y)
 
 bool checkNextMove(g_piece p1[], g_piece p2[], int x, int y)
 {
-    bool success = true;
-
     int dx , dy;
 
     for (int i = 0; i < 16; i++)
@@ -646,7 +662,7 @@ bool checkNextMove(g_piece p1[], g_piece p2[], int x, int y)
             {
                 case PAWN:
                     if ((p2[i].x == x - 1 || p2[i].x == x + 1)
-                    && p2[i].y == y + 1) success = false;
+                    && p2[i].y == y + 1) return false;
                     break;
                 case ROOK:
                     if (moveRook(p2[i], x, y)) 
@@ -654,23 +670,23 @@ bool checkNextMove(g_piece p1[], g_piece p2[], int x, int y)
                         if (y != p2[i].y)
                         {
                             if (checkVertical(&p2[i], p1, x, y, dy)
-                            && checkVertical(&p2[i], p2, x, y, dy)) success = false;
+                            && checkVertical(&p2[i], p2, x, y, dy)) return false;
                         }
                         else if (x != p2[i].x)
                         {
                             if (checkHorizontal(&p2[i], p1, x, y, dx)
-                            && checkHorizontal(&p2[i], p2, x, y, dx)) success = false;
+                            && checkHorizontal(&p2[i], p2, x, y, dx)) return false;
                         }
                     }
                     break;
                 case KNIGHT:
-                    if (moveKnight(p2[i], x, y)) success = false;
+                    if (moveKnight(p2[i], x, y)) return false;
                     break;
                 case BISHOP:
                     if (moveBishop(p2[i], x, y)) 
                     {
                         if (checkDiagonal(&p2[i], p1, dx, x, y, dy) 
-                        && checkDiagonal(&p2[i], p2, dx, x, y, dy)) success = false;
+                        && checkDiagonal(&p2[i], p2, dx, x, y, dy)) return false;
                     }
                     break;
                 case QUEEN:
@@ -679,29 +695,28 @@ bool checkNextMove(g_piece p1[], g_piece p2[], int x, int y)
                         if ((y != p2[i].y) && (x == p2[i].x))
                         {
                             if (checkVertical(&p2[i], p1, x, y, dy) 
-                            && checkVertical(&p2[i], p2, x, y, dy)) success = false;
+                            && checkVertical(&p2[i], p2, x, y, dy)) return false;
                         }
                         else if ((x != p2[i].x) && (y == p2[i].y))
                         {
                             if (checkHorizontal(&p2[i], p1, x, y, dx) 
-                            && checkHorizontal(&p2[i], p2, x, y, dx)) success = false;
+                            && checkHorizontal(&p2[i], p2, x, y, dx)) return false;
                         }
                         else 
                         {
                             if (checkDiagonal(&p2[i], p1, x, y, dx, dy) 
-                            && checkDiagonal(&p2[i], p2, x, y, dx, dy)) success = false;
+                            && checkDiagonal(&p2[i], p2, x, y, dx, dy)) return false;
                         }                        
                     }
                     break;
                 case KING:
-                    if (moveKing(p2[i], x, y)) success = false;
+                    if (moveKing(p2[i], x, y)) return false;
                     break;
             }
         }
-        if (!success) break;
     }
     
-    return success;
+    return true;
 }
 
 void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])

@@ -169,6 +169,30 @@ void waitInput(SDL_Event e, game *GAME)
     }
 }
 
+void checkmateInput(SDL_Event e, game *GAME)
+{
+    while (SDL_PollEvent(&e) != 0)
+    {
+        switch (e.type)
+        {
+            case SDL_QUIT: GAME->quit = true; break;
+            case SDL_MOUSEMOTION:
+
+            break;
+            case SDL_MOUSEBUTTONDOWN:
+            break;
+            case SDL_KEYDOWN:
+                if (e.key.keysym.sym == SDLK_ESCAPE) 
+                {
+                    shutdown(GAME->connfd, SHUT_RDWR);
+                    close(GAME->connfd);
+                    GAME->state = G_MENU;
+                }
+            break;
+        }
+    }
+}
+
 void initButtons(SDL_Rect set[])
 {
     set[B_JOIN].w = 256;
@@ -494,7 +518,7 @@ void wait_disconnect(game *GAME)
                         }
                         else
                         {
-                            if (buf[S_PROMOTE]) GAME->p2_set[i].type = buf[S_PROMOTE];
+                            if (buf[S_PROMOTE] > 0) GAME->p2_set[i].type = buf[S_PROMOTE];
 
                             GAME->p2_set[i].x += buf[S_DELTAX];
                             GAME->p2_set[i].y += buf[S_DELTAY];
@@ -517,8 +541,16 @@ void wait_disconnect(game *GAME)
                             setRect(&GAME->p2_set[i]);
 
                             GAME->TURN = GAME->PLAYER;
+                            break;
                         }
                     }
+                }
+                // check for checkmate, every move
+                if (!checkNextMove(GAME->p1_set, GAME->p2_set, GAME->p1_set[12].x, GAME->p1_set[12].y))
+                {
+                    printf("checkmate?\n");
+                    GAME->CHECKMATE = true;
+                    GAME->WINNER = !GAME->PLAYER;
                 }
             }
         }
