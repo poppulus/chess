@@ -8,8 +8,9 @@ void initRects(g_piece set[]);
 void initClips(SDL_Rect clips[]);
 void initColor(g_piece set[], bool player);
 void initIds(g_piece p1[], g_piece p2[]);
+void initGame(game *GAME);
 
-void setupGame(g_piece p1[], g_piece p2[], bool p1color, bool p2color);
+void setupGame(game *GAME);
 
 void drawPieces(Texture, SDL_Rect[], game, g_piece[], g_piece[]);
 void drawSelectHover(SDL_Renderer*, Texture, SDL_Rect[], game);
@@ -23,8 +24,8 @@ bool checkDiagonal(g_piece *piece, g_piece p[], int x, int y, int dx, int dy);
 bool checkHorizontal(g_piece *piece, g_piece p[], int x, int y, int dx);
 bool checkVertical(g_piece *piece, g_piece p[], int x, int y, int dy);
 bool checkMove(game *GAME, g_piece p1[], g_piece p2[]);
-void checkOpponent(game GAME, g_piece p2[]);
-void checkSelf(g_piece p1[], int x, int y);
+void checkOpponent(game *GAME, g_piece p2[]);
+void checkSelf(g_piece p1[], int pid);
 bool checkNextMove(g_piece p1[], g_piece p2[], int x, int y);
 bool checkOpCastle(game GAME, g_piece set[], g_piece *piece, int buf[6]);
 
@@ -53,9 +54,8 @@ bool moveQueen(g_piece piece, int x, int y);
 
 bool hostServer(game *GAME);
 bool connectClient(game *GAME);
-void setSocketData(game *GAME, int promote);
+void setSocketData(game *GAME, int promote, int pid);
 
 int connect_thread(void *ptr);
 int host_thread(void *ptr);
 void wait_disconnect(game *GAME);
-

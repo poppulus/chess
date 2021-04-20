@@ -79,7 +79,7 @@ void joinInput(SDL_Event e, game *GAME)
                         {
                             GAME->PLAYER = BLACK;
                             GAME->state = G_PLAY;
-                            setupGame(GAME->p1_set, GAME->p2_set, BLACK, WHITE);
+                            setupGame(GAME);
                             thrd_create(&GAME->thread, connect_thread, GAME);
                         } 
                     break;
@@ -108,13 +108,6 @@ void menuInput(SDL_Event e, game *GAME, SDL_Rect buttons[])
             case SDL_QUIT: GAME->quit = true; break;
             case SDL_KEYDOWN: 
                 if (e.key.keysym.sym == SDLK_ESCAPE) GAME->quit = true; 
-                else if (e.key.keysym.sym == SDLK_RETURN) 
-                {
-                    // testing purposes
-                    GAME->PLAYER = WHITE;
-                    GAME->state = G_PLAY;
-                    setupGame(GAME->p1_set, GAME->p2_set, WHITE, BLACK);
-                }
             break;
             case SDL_MOUSEMOTION:
             break;
@@ -229,17 +222,34 @@ void initIds(g_piece p1[], g_piece p2[])
         p2[j].id = 15 - j;
 }
 
-void setupGame(g_piece p1[], g_piece p2[], bool p1color, bool p2color)
+void initGame(game *GAME)
 {
-    initIds(p1, p2);
+    GAME->hosting = false;
+    GAME->m_pressed = false;
+    GAME->promotion = false;
+    GAME->quit = false;
+    GAME->selection = false;
+    GAME->enpassant = false;
+    GAME->state = G_MENU;
+    GAME->inplen = 0;
+    GAME->TURN = WHITE;
+    GAME->CHECKMATE = false;
+    GAME->WINNER = 0;
+    
+    GAME->PID = -1;
+}
+
+void setupGame(game *GAME)
+{
+    initIds(GAME->p1_set, GAME->p2_set);
   
-    initTypes(p1, p1color);
-    initTypes(p2, p2color);
+    initTypes(GAME->p1_set, GAME->PLAYER);
+    initTypes(GAME->p2_set, !GAME->PLAYER);
 
-    initPositions(p1, p2, p1color);
+    initPositions(GAME->p1_set, GAME->p2_set, GAME->PLAYER);
 
-    initRects(p1);
-    initRects(p2);
+    initRects(GAME->p1_set);
+    initRects(GAME->p2_set);
 }
 
 void setRect(g_piece *piece)
@@ -363,9 +373,10 @@ bool connectClient(game *GAME)
     return success;
 }
 
-void setSocketData(game *GAME, int promote)
+void setSocketData(game *GAME, int promote, int pid)
 {
-    int buf[7];
+    int buf[8];
+    bzero(buf, sizeof(buf));
 
     buf[S_FILED] = GAME->sockfd;
     buf[S_PIECEID] = GAME->selected_piece->id;
@@ -374,6 +385,7 @@ void setSocketData(game *GAME, int promote)
     buf[S_PIECEX] = GAME->cellx;
     buf[S_PIECEY] = GAME->celly;
     buf[S_PROMOTE] = promote;
+    buf[S_PID] = pid;
 
     send(GAME->connfd, buf, sizeof(buf), 0); 
 }
@@ -451,7 +463,7 @@ int host_thread(void *ptr)
             GAME->hosting = true;
             GAME->state = G_PLAY;
             GAME->PLAYER = WHITE;
-            setupGame(GAME->p1_set, GAME->p2_set, WHITE, BLACK);
+            setupGame(GAME);
             wait_disconnect(GAME);
         }
     }
@@ -485,9 +497,11 @@ bool checkOpCastle(game GAME, g_piece set[], g_piece *piece, int buf[6])
 
 void wait_disconnect(game *GAME)
 {
-    int buf[6];
+    int buf[8];
     int nbytes;
     bool quit = false;
+
+    bzero(buf, sizeof(buf));
 
     printf("thread: waiting on disconnect\n");
 
@@ -519,7 +533,7 @@ void wait_disconnect(game *GAME)
                         else
                         {
                             if (buf[S_PROMOTE] > 0) GAME->p2_set[i].type = buf[S_PROMOTE];
-
+                            
                             GAME->p2_set[i].x += buf[S_DELTAX];
                             GAME->p2_set[i].y += buf[S_DELTAY];
 
@@ -537,7 +551,7 @@ void wait_disconnect(game *GAME)
                                 break;
                             }
 
-                            checkSelf(GAME->p1_set, GAME->p2_set[i].x, GAME->p2_set[i].y);
+                            checkSelf(GAME->p1_set, buf[S_PID]);
                             setRect(&GAME->p2_set[i]);
 
                             GAME->TURN = GAME->PLAYER;

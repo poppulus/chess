@@ -18,12 +18,8 @@ int main(int argc, const char *argv[])
     {
         FC_LoadFont(fontTexture, renderer, "ASCII.ttf", 20, FC_MakeColor(0, 0, 0, 255), TTF_STYLE_NORMAL);
 
-        char *joingame = "Join Game";
-
         int timer, delta;
-
-        bool black = false,
-             turn = WHITE;
+        bool black = false;
 
         SDL_Rect buttons[3];
         SDL_Event e;
@@ -62,19 +58,10 @@ int main(int argc, const char *argv[])
                 .h = 64,
                 .x = 400 - 256,
                 .y = 300 - 256
-            },
-            .hosting = false,
-            .m_pressed = false,
-            .promotion = false,
-            .quit = false,
-            .selection = false,
-            .enpassant = true,
-            .state = G_MENU,
-            .inplen = 0,
-            .TURN = WHITE,
-            .CHECKMATE = false,
-            .WINNER = 0
+            }
         };
+
+        initGame(&GAME);
 
         while (!GAME.quit)
         {
@@ -526,8 +513,8 @@ bool checkMove(game *GAME, g_piece p1[], g_piece p2[])
                         || GAME->selected_piece->x - 1 == p2[i].x))
                         {
                             found = true;
-                            epOpponent(GAME->selected_piece, &p2[i]);
-                            GAME->enpassant = false;
+                            p2[i].dead = true;
+                            GAME->PID = p2[i].id;
                             break;
                         }
                     }
@@ -621,28 +608,31 @@ bool checkMove(game *GAME, g_piece p1[], g_piece p2[])
     return success;
 }
 
-void checkOpponent(game GAME, g_piece p2[])
+void checkOpponent(game *GAME, g_piece p2[])
 {
     for (int i = 0; i < 16; i++)
     {
-        if ((p2[i].x == GAME.cellx && p2[i].y == GAME.celly) 
+        if ((p2[i].x == GAME->cellx && p2[i].y == GAME->celly) 
         && !p2[i].dead) 
         {
             p2[i].dead = true;
+            GAME->PID = p2[i].id;
             break;
         }
     }
 }
 
-void checkSelf(g_piece p1[], int x, int y)
+void checkSelf(g_piece p1[], int pid)
 {
-    for (int i = 0; i < 16; i++)
+    if (pid != -1)
     {
-        if ((p1[i].x == x && p1[i].y == y) 
-        && !p1[i].dead) 
+        for (int i = 0; i < 16; i++)
         {
-            p1[i].dead = true;
-            break;
+            if (p1[i].id == pid)
+            {
+                p1[i].dead = true;
+                break;
+            }
         }
     }
 }
@@ -772,7 +762,9 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                     {
                                         for (int i = 0; i < 16; i++)
                                         {
-                                            if (p1_set[i].x == GAME->cellx && p1_set[i].y == GAME->celly)
+                                            if ((p1_set[i].x == GAME->cellx 
+                                            && p1_set[i].y == GAME->celly) 
+                                            && !p1_set[i].dead)
                                             {
                                                 GAME->selection = true;
 
@@ -818,7 +810,7 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
 
                                                 if (GAME->castling)
                                                 {
-                                                    setSocketData(GAME, 0);
+                                                    setSocketData(GAME, 0, -1);
 
                                                     GAME->TURN = !GAME->PLAYER;
 
@@ -835,7 +827,8 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                                             GAME->selected_piece->first = true;
                                                         break;
                                                     }
-                                                    checkOpponent(*GAME, p2_set);
+
+                                                    checkOpponent(GAME, p2_set);
 
                                                     if (GAME->celly == 0 && GAME->selected_piece->type == PAWN)
                                                     {
@@ -844,8 +837,10 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                                     }
 
                                                     /// test online functionality
-                                                    setSocketData(GAME, 0);
+                                                    setSocketData(GAME, 0, GAME->PID);
                                                     ///
+
+                                                    GAME->PID = -1;
 
                                                     GAME->TURN = !GAME->PLAYER;
 
@@ -926,28 +921,15 @@ void promotePiece(game *GAME, SDL_Event e)
         {
             case 'q':
                 GAME->selected_piece->type = QUEEN;
+            break;
             case 'r':
                 GAME->selected_piece->type = ROOK;
+            break;
             case 'b':
                 GAME->selected_piece->type = BISHOP;
+            break;
             case 'k':
                 GAME->selected_piece->type = KNIGHT;
-
-                GAME->promotion = false;
-                GAME->m_pressed = false;
-                GAME->selection = false;
-
-                /// test online functionality
-                setSocketData(GAME, GAME->selected_piece->type);
-                ///
-
-                GAME->TURN = !GAME->PLAYER;
-
-                GAME->selected_piece->x = GAME->cellx;
-                GAME->selected_piece->y = GAME->celly;
-                
-                setRect(GAME->selected_piece); 
-                SDL_ShowCursor(1);
             break;
             case SDLK_ESCAPE:
                 GAME->state = G_MENU;
@@ -955,6 +937,29 @@ void promotePiece(game *GAME, SDL_Event e)
                 close(GAME->sockfd);
                 SDL_ShowCursor(1);
             break;
+        }
+        if (e.key.keysym.sym == 'q' 
+        || e.key.keysym.sym == 'r' 
+        || e.key.keysym.sym == 'b' 
+        || e.key.keysym.sym == 'k')
+        {
+            GAME->promotion = false;
+            GAME->m_pressed = false;
+            GAME->selection = false;
+
+            /// test online functionality
+            setSocketData(GAME, GAME->selected_piece->type, GAME->PID);
+            ///
+
+            GAME->PID = -1;
+
+            GAME->TURN = !GAME->PLAYER;
+
+            GAME->selected_piece->x = GAME->cellx;
+            GAME->selected_piece->y = GAME->celly;
+            
+            setRect(GAME->selected_piece); 
+            SDL_ShowCursor(1);
         }
     }
 }
@@ -993,6 +998,4 @@ void epOpponent(g_piece *piece, g_piece *p2)
 
     piece->y = piece->y - 1;
     piece->x = p2->x;
-
-    setRect(piece);
 }

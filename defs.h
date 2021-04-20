@@ -46,7 +46,8 @@ enum s_data
     S_DELTAY,
     S_PIECEX,
     S_PIECEY,
-    S_PROMOTE
+    S_PROMOTE,
+    S_PID
 };
 
 typedef struct texture
@@ -77,7 +78,7 @@ typedef struct game
     int cellx, celly, 
         mousex, mousey, inplen,
         sockfd, connfd, addrlen,
-        state, WINNER;
+        state, WINNER, PID;
 
     bool quit, 
          hosting, 
