@@ -68,7 +68,7 @@ typedef struct game
     thrd_t thread;
     
     SDL_Rect b_quad, s_quad, h_quad;
-    g_piece *selected_piece;
+    g_piece *selected_piece, *passant_piece;
     g_piece *p1_set, *p2_set;
 
     char addr_input[16];
@@ -89,5 +89,6 @@ typedef struct game
          enpassant,
          castling,
          TURN, 
-         PLAYER;
+         PLAYER,
+         CHECK;
 } game;

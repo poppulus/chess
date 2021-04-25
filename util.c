@@ -107,7 +107,13 @@ void menuInput(SDL_Event e, game *GAME, SDL_Rect buttons[])
         {
             case SDL_QUIT: GAME->quit = true; break;
             case SDL_KEYDOWN: 
-                if (e.key.keysym.sym == SDLK_ESCAPE) GAME->quit = true; 
+                if (e.key.keysym.sym == SDLK_ESCAPE) GAME->quit = true;
+                if (e.key.keysym.sym == SDLK_RETURN) 
+                {
+                    setupGame(GAME);
+                    GAME->PLAYER = WHITE;
+                    GAME->state = G_PLAY;
+                }
             break;
             case SDL_MOUSEMOTION:
             break;
@@ -235,6 +241,7 @@ void initGame(game *GAME)
     GAME->TURN = WHITE;
     GAME->CHECKMATE = false;
     GAME->WINNER = 0;
+    GAME->CHECK = false;
     
     GAME->PID = -1;
 }
@@ -340,7 +347,7 @@ bool moveQueen(g_piece piece, int x, int y)
 bool connectClient(game *GAME)
 {
     bool success = true;
-    int buf[6];
+    int buf[7];
 
     // socket create and varification
 	GAME->sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -540,7 +547,10 @@ void wait_disconnect(game *GAME)
                             if (GAME->p2_set[i].y == 3 
                             && GAME->p2_set[i].type == PAWN 
                             && !GAME->p2_set[i].first) 
+                            {    
                                 GAME->enpassant = true;
+                                GAME->passant_piece = &GAME->p2_set[i];
+                            }
 
                             switch (GAME->p2_set[i].type)
                             {
@@ -551,7 +561,7 @@ void wait_disconnect(game *GAME)
                                 break;
                             }
 
-                            checkSelf(GAME->p1_set, buf[S_PID]);
+                            checkSelf(GAME, buf[S_PID]);
                             setRect(&GAME->p2_set[i]);
 
                             GAME->TURN = GAME->PLAYER;
@@ -559,13 +569,18 @@ void wait_disconnect(game *GAME)
                         }
                     }
                 }
-                // check for checkmate, every move
+                // check for check/checkmate, every move
                 if (!checkNextMove(GAME->p1_set, GAME->p2_set, GAME->p1_set[12].x, GAME->p1_set[12].y))
                 {
-                    printf("checkmate?\n");
-                    GAME->CHECKMATE = true;
-                    GAME->WINNER = !GAME->PLAYER;
+                    printf("check?\n");
+                    if (GAME->CHECK)
+                    {
+                        GAME->CHECKMATE = true;
+                        printf("checkmate mate?\n");
+                    }
+                    GAME->CHECK = true;
                 }
+                else GAME->CHECK = false;
             }
         }
         bzero(buf, sizeof(buf));

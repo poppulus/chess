@@ -24,8 +24,8 @@ bool checkDiagonal(g_piece *piece, g_piece p[], int x, int y, int dx, int dy);
 bool checkHorizontal(g_piece *piece, g_piece p[], int x, int y, int dx);
 bool checkVertical(g_piece *piece, g_piece p[], int x, int y, int dy);
 bool checkMove(game *GAME, g_piece p1[], g_piece p2[]);
-void checkOpponent(game *GAME, g_piece p2[]);
-void checkSelf(g_piece p1[], int pid);
+void checkOpponent(game *GAME);
+void checkSelf(game *GAME, int pid);
 bool checkNextMove(g_piece p1[], g_piece p2[], int x, int y);
 bool checkOpCastle(game GAME, g_piece set[], g_piece *piece, int buf[6]);
 

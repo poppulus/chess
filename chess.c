@@ -172,15 +172,15 @@ int main(int argc, const char *argv[])
                     }
                     else
                     {
+                        // draw pieces
+                        drawPieces(texture, clips, GAME, player1_set, player2_set);
+
                         FC_Draw(
                             fontTexture, 
                             renderer, 
                             buttons[B_HOST].x + (buttons[B_HOST].w >> 2), 
                             buttons[B_HOST].y + (buttons[B_HOST].h >> 2), 
                             "Checkmate!\n%d player won the game.", GAME.WINNER);
-
-                        // draw pieces
-                        drawPieces(texture, clips, GAME, player1_set, player2_set);
                     }
                     
                 break;
@@ -501,35 +501,33 @@ bool checkMove(game *GAME, g_piece p1[], g_piece p2[])
     switch (GAME->selected_piece->type)
     {
         case PAWN:
+            if (GAME->enpassant && GAME->selected_piece->y == 3)
+            {
+                if (((GAME->celly == 2) && (GAME->cellx == GAME->passant_piece->x))
+                && ((GAME->selected_piece->x + 1 == GAME->passant_piece->x) 
+                || (GAME->selected_piece->x - 1 == GAME->passant_piece->x)))
+                {
+                    GAME->passant_piece->dead = true;
+                    GAME->PID = GAME->passant_piece->id;
+                    break;
+                }
+            }
+            
             for (int i = 0; i < 16; i++)
             {
                 if (!p2[i].dead)
                 {
-                    if (GAME->enpassant && p2[i].type == PAWN 
-                    && (GAME->selected_piece->y == 3 && p2[i].y == 3))
-                    {
-                        if (GAME->celly == 2 && GAME->cellx == p2[i].x
-                        && (GAME->selected_piece->x + 1 == p2[i].x 
-                        || GAME->selected_piece->x - 1 == p2[i].x))
-                        {
-                            found = true;
-                            p2[i].dead = true;
-                            GAME->PID = p2[i].id;
-                            break;
-                        }
-                    }
                     if (p2[i].x == GAME->cellx && p2[i].y == GAME->celly)
                     {
                         if (p2[i].x == GAME->selected_piece->x 
-                        && p2[i].y == GAME->celly 
-                        && GAME->celly == GAME->selected_piece->y - 1)
+                        && (GAME->celly == GAME->selected_piece->y - 1 
+                        || GAME->celly == GAME->selected_piece->y - 2))
                         {
                             success = false;
                             break;
                         }
-                        else if (p2[i].x == GAME->cellx && p2[i].y == GAME->celly
-                        && ((GAME->selected_piece->x - 1 == GAME->cellx) 
-                        || (GAME->selected_piece->x + 1 == GAME->cellx)))
+                        else if ((GAME->selected_piece->x - 1 == GAME->cellx) 
+                        || (GAME->selected_piece->x + 1 == GAME->cellx))
                         {
                             found = true;
                             break;
@@ -608,29 +606,39 @@ bool checkMove(game *GAME, g_piece p1[], g_piece p2[])
     return success;
 }
 
-void checkOpponent(game *GAME, g_piece p2[])
+void checkOpponent(game *GAME)
 {
     for (int i = 0; i < 16; i++)
     {
-        if ((p2[i].x == GAME->cellx && p2[i].y == GAME->celly) 
-        && !p2[i].dead) 
+        if ((GAME->p2_set[i].x == GAME->cellx && GAME->p2_set[i].y == GAME->celly) 
+        && !GAME->p2_set[i].dead) 
         {
-            p2[i].dead = true;
-            GAME->PID = p2[i].id;
+            GAME->p2_set[i].dead = true;
+            GAME->PID = GAME->p2_set[i].id;
+            if (GAME->p2_set[i].type == KING) 
+            {
+                GAME->CHECKMATE = true;
+                GAME->WINNER = GAME->PLAYER;
+            }
             break;
         }
     }
 }
 
-void checkSelf(g_piece p1[], int pid)
+void checkSelf(game *GAME, int pid)
 {
     if (pid != -1)
     {
         for (int i = 0; i < 16; i++)
         {
-            if (p1[i].id == pid)
+            if (GAME->p1_set[i].id == pid)
             {
-                p1[i].dead = true;
+                GAME->p1_set[i].dead = true;
+                if (GAME->p1_set[i].type == KING) 
+                {
+                    GAME->CHECKMATE = true;
+                    GAME->WINNER = !GAME->PLAYER;
+                }
                 break;
             }
         }
@@ -792,10 +800,15 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                             && (!p1_set[12].first && !GAME->selected_piece->first))
                                             {
                                                 if (p1_set[12].x == GAME->cellx 
-                                                && p1_set[12].y == GAME->celly) continue;
+                                                && p1_set[12].y == GAME->celly) 
+                                                {
+                                                    ok = false;
+                                                    break;
+                                                }
                                             }
                                             
-                                            if (p1_set[j].x == GAME->cellx && p1_set[j].y == GAME->celly)
+                                            if (!p1_set[j].dead 
+                                            && p1_set[j].x == GAME->cellx && p1_set[j].y == GAME->celly)
                                             {
                                                 ok = false;
                                                 break;
@@ -828,7 +841,7 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                                         break;
                                                     }
 
-                                                    checkOpponent(GAME, p2_set);
+                                                    checkOpponent(GAME);
 
                                                     if (GAME->celly == 0 && GAME->selected_piece->type == PAWN)
                                                     {
@@ -849,9 +862,10 @@ void playInput(SDL_Event e, game *GAME, g_piece p1_set[], g_piece p2_set[])
                                                     
                                                     setRect(GAME->selected_piece);                       
                                                 }
+                                                GAME->enpassant = false;
+                                                GAME->passant_piece = NULL;
+                                                SDL_ShowCursor(1);
                                             }
-                                            GAME->enpassant = false;
-                                            SDL_ShowCursor(1);
                                         }
                                     }
                                 }
